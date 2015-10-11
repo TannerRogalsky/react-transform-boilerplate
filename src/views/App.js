@@ -1,11 +1,21 @@
 import React from 'react';
+import Game from './Game';
+import Runner from '../utils/Runner';
 
-const App = React.createClass({
+const runGameLoop = function(game) {
+  return Runner.run(game.update.bind(game));
+}
+
+export default React.createClass({
+  componentDidMount() {
+    const canvas = this.refs.canvas;
+    this.game = new Game(canvas);
+    this.taskId = runGameLoop(this.game);
+  },
+
   render() {
     return (
-      <div>test</div>
+      <canvas ref='canvas' width={1280} height={720} />
     )
   }
 });
-
-export default App;

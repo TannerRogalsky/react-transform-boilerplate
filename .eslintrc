@@ -3,6 +3,7 @@
     "jsx": true,
     "modules": true
   },
+  "extends": "eslint:recommended",
   "env": {
     "browser": true,
     "node": true

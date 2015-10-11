@@ -1,4 +1,10 @@
 import React from 'react';
-import { App } from './App';
+import {render} from 'react-dom';
+import {Router, Route} from 'react-router';
+import App from './views/App';
 
-React.render(<App />, document.getElementById('root'));
+render((
+  <Router>
+    <Route path='/' component={App} />
+  </Router>
+), document.getElementById('root'))

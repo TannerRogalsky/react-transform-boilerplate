@@ -1,5 +1,5 @@
 import React from 'react';
-import Game from './Game';
+import Game from '../canvas/Game';
 import Runner from '../utils/Runner';
 
 const runGameLoop = function(game) {

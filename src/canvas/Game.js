@@ -5,9 +5,9 @@ const e_jointBit = 0x0002;
 
 const SCALE = 32;
 
-const getCanvasRelativeCoords = function(coords) {
-  coords.x -= this.offsetLeft;
-  coords.y -= this.offsetTop;
+const getCanvasRelativeCoords = function(coords, camera) {
+  coords.x -= this.offsetLeft + camera.x;
+  coords.y -= this.offsetTop + camera.y;
   coords.y *= -1;
   coords.x /= SCALE;
   coords.y /= SCALE;
@@ -40,6 +40,7 @@ export default class Game {
 
     this.width = canvas.width;
     this.height = canvas.height;
+    this.camera = {x: 0, y: canvas.height};
 
     this.lines = [];
     this.currentLine = null;
@@ -49,7 +50,7 @@ export default class Game {
     const world = new Box2D.b2World(gravity, true);
 
     this.linesBody = world.CreateBody(new Box2D.b2BodyDef());
-    this.ballBody = createBall(world, 5, 0, 0.5);
+    this.ballBody = createBall(world, 5, canvas.height / SCALE, 0.5);
 
     const debugDraw = getDebugDraw(this.context);
     debugDraw.SetFlags(e_shapeBit | e_jointBit);
@@ -65,6 +66,7 @@ export default class Game {
     ctx.clearRect(0, 0, this.width, this.height);
     ctx.save();
     ctx.scale(1, -1);
+    ctx.translate(-this.camera.x, -this.camera.y);
     ctx.scale(SCALE, SCALE);
     ctx.lineWidth /= SCALE;
 
@@ -84,20 +86,20 @@ export default class Game {
   onTouchMove(e) {
     this.touchPosition.x = e.clientX;
     this.touchPosition.y = e.clientY;
-    this.getCanvasRelativeCoords(this.touchPosition);
+    this.getCanvasRelativeCoords(this.touchPosition, this.camera);
   }
 
   onTouchStart(e) {
     // console.log('down', e);
     this.currentLine = {x: e.clientX, y: e.clientY};
-    this.getCanvasRelativeCoords(this.currentLine);
+    this.getCanvasRelativeCoords(this.currentLine, this.camera);
   }
 
   onTouchEnd(e) {
     // console.log('up', e);
     this.touchPosition.x = e.clientX;
     this.touchPosition.y = e.clientY;
-    this.getCanvasRelativeCoords(this.touchPosition);
+    this.getCanvasRelativeCoords(this.touchPosition, this.camera);
 
     const line = {
       x1: this.currentLine.x, y1: this.currentLine.y,

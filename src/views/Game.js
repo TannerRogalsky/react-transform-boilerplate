@@ -1,6 +1,27 @@
+import getDebugDraw from '../utils/getDebugDraw';
+
+const e_shapeBit = 0x0001;
+const e_jointBit = 0x0002;
+
+const SCALE = 32;
+
 const getCanvasRelativeCoords = function(coords) {
   coords.x -= this.offsetLeft;
   coords.y -= this.offsetTop;
+  coords.y *= -1;
+  coords.x /= SCALE;
+  coords.y /= SCALE;
+};
+
+const createBall = function(world, x, y, r) {
+  const ballShape = new Box2D.b2CircleShape();
+  ballShape.set_m_radius(r);
+  const ballBodyDef = new Box2D.b2BodyDef();
+  ballBodyDef.set_type(Box2D.b2_dynamicBody);
+  const ballBody = world.CreateBody(ballBodyDef);
+  ballBody.CreateFixture(ballShape, 1.0);
+  ballBody.SetTransform(new Box2D.b2Vec2(x, y), 0.0);
+  return ballBody
 };
 
 export default class Game {
@@ -23,11 +44,31 @@ export default class Game {
     this.lines = [];
     this.currentLine = null;
     this.touchPosition = {x: 0, y: 0};
+
+    const gravity = new Box2D.b2Vec2(0.0, -10.0);
+    const world = new Box2D.b2World(gravity, true);
+
+    this.linesBody = world.CreateBody(new Box2D.b2BodyDef());
+    this.ballBody = createBall(world, 5, 0, 0.5);
+
+    const debugDraw = getDebugDraw(this.context);
+    debugDraw.SetFlags(e_shapeBit | e_jointBit);
+    world.SetDebugDraw(debugDraw);
+
+    this.world = world;
   }
 
   update(dt) {
+    this.world.Step(dt, 3, 2);
+
     const ctx = this.context;
     ctx.clearRect(0, 0, this.width, this.height);
+    ctx.save();
+    ctx.scale(1, -1);
+    ctx.scale(SCALE, SCALE);
+    ctx.lineWidth /= SCALE;
+
+    this.world.DrawDebugData();
 
     if (this.currentLine) {
       ctx.beginPath();
@@ -37,12 +78,7 @@ export default class Game {
       ctx.stroke();
     }
 
-    ctx.beginPath();
-    for (const line of this.lines) {
-      ctx.moveTo(line.x1, line.y1);
-      ctx.lineTo(line.x2, line.y2);
-    }
-    ctx.stroke();
+    ctx.restore();
   }
 
   onTouchMove(e) {
@@ -52,17 +88,27 @@ export default class Game {
   }
 
   onTouchStart(e) {
-    console.log('down', e);
+    // console.log('down', e);
     this.currentLine = {x: e.clientX, y: e.clientY};
     this.getCanvasRelativeCoords(this.currentLine);
   }
 
   onTouchEnd(e) {
-    console.log('up', e);
-    this.lines.push({
+    // console.log('up', e);
+    this.touchPosition.x = e.clientX;
+    this.touchPosition.y = e.clientY;
+    this.getCanvasRelativeCoords(this.touchPosition);
+
+    const line = {
       x1: this.currentLine.x, y1: this.currentLine.y,
       x2: this.touchPosition.x, y2: this.touchPosition.y
-    });
+    };
+    this.lines.push(line);
+
+    const lineShape = new Box2D.b2EdgeShape();
+    lineShape.Set(new Box2D.b2Vec2(line.x1, line.y1), new Box2D.b2Vec2(line.x2, line.y2));
+    this.linesBody.CreateFixture(lineShape, 0.0);
+
     this.currentLine = null;
   }
 }

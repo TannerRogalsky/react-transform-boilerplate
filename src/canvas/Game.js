@@ -4,6 +4,7 @@ const e_shapeBit = 0x0001;
 const e_jointBit = 0x0002;
 
 const SCALE = 32;
+const STARTING_POSITION = {x: 5, y: 10};
 
 const getCanvasRelativeCoords = function(coords, camera) {
   coords.x -= this.offsetLeft + camera.x;
@@ -42,6 +43,7 @@ export default class Game {
     this.height = canvas.height;
     this.camera = {x: 0, y: canvas.height};
 
+    this.playing = false;
     this.lines = [];
     this.currentLine = null;
     this.touchPosition = {x: 0, y: 0};
@@ -49,8 +51,22 @@ export default class Game {
     const gravity = new Box2D.b2Vec2(0.0, -10.0);
     const world = new Box2D.b2World(gravity, true);
 
+    const listener = new Box2D.JSContactListener();
+    listener.BeginContact = (contactPtr) => {
+        var contact = Box2D.wrapPointer(contactPtr, Box2D.b2Contact);
+        var fixtureA = contact.GetFixtureA();
+        var fixtureB = contact.GetFixtureB();
+        console.log('A', fixtureA);
+        console.log('B', fixtureB);
+    };
+    listener.EndContact = function() {};
+    listener.PreSolve = function() {};
+    listener.PostSolve = function() {};
+
+    world.SetContactListener( listener );
+
     this.linesBody = world.CreateBody(new Box2D.b2BodyDef());
-    this.ballBody = createBall(world, 5, canvas.height / SCALE, 0.5);
+    this.ballBody = createBall(world, STARTING_POSITION.x, STARTING_POSITION.y, 0.5);
 
     const debugDraw = getDebugDraw(this.context);
     debugDraw.SetFlags(e_shapeBit | e_jointBit);
@@ -59,11 +75,36 @@ export default class Game {
     this.world = world;
   }
 
-  update(dt) {
-    this.world.Step(dt, 3, 2);
+  startPlaying() {
+    this.playing = true;
+  }
 
+  startEditing() {
+    this.playing = false;
+
+    const {x, y} = STARTING_POSITION;
+    this.ballBody.SetLinearVelocity(new Box2D.b2Vec2(0, 0));
+    this.ballBody.SetAngularVelocity(0);
+    this.ballBody.SetTransform(new Box2D.b2Vec2(x, y), 0.0);
+
+    this.camera.x = x * SCALE - this.width / 2;
+    this.camera.y = y * SCALE + this.height / 2;
+  }
+
+  update(dt) {
+    if (this.playing) {
+      this.world.Step(dt, 3, 2);
+      const ballPos = this.ballBody.GetPosition();
+      this.camera.x = ballPos.get_x() * SCALE - this.width / 2;
+      this.camera.y = ballPos.get_y() * SCALE + this.height / 2;
+    }
+    this.render();
+  }
+
+  render() {
     const ctx = this.context;
-    ctx.clearRect(0, 0, this.width, this.height);
+    ctx.fillStyle = 'black';
+    ctx.fillRect(0, 0, this.width, this.height);
     ctx.save();
     ctx.scale(1, -1);
     ctx.translate(-this.camera.x, -this.camera.y);
@@ -74,7 +115,7 @@ export default class Game {
 
     if (this.currentLine) {
       ctx.beginPath();
-      ctx.strokeStyle = 'black';
+      ctx.strokeStyle = 'green';
       ctx.moveTo(this.currentLine.x, this.currentLine.y);
       ctx.lineTo(this.touchPosition.x, this.touchPosition.y);
       ctx.stroke();

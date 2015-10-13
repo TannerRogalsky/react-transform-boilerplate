@@ -37,6 +37,8 @@ export default class Game {
     canvas.ontouchend = this.onTouchEnd.bind(this);
     canvas.ontouchmove = this.onTouchMove.bind(this);
 
+    canvas.oncontextmenu = function() {return false;};
+
     this.getCanvasRelativeCoords = getCanvasRelativeCoords.bind(canvas);
 
     this.width = canvas.width;
@@ -45,7 +47,7 @@ export default class Game {
 
     this.playing = false;
     this.lines = [];
-    this.currentLine = null;
+    this.touchDownPosition = null;
     this.touchPosition = {x: 0, y: 0};
 
     const gravity = new Box2D.b2Vec2(0.0, -10.0);
@@ -63,7 +65,7 @@ export default class Game {
     listener.PreSolve = function() {};
     listener.PostSolve = function() {};
 
-    world.SetContactListener( listener );
+    world.SetContactListener(listener);
 
     this.linesBody = world.CreateBody(new Box2D.b2BodyDef());
     this.ballBody = createBall(world, STARTING_POSITION.x, STARTING_POSITION.y, 0.5);
@@ -113,10 +115,10 @@ export default class Game {
 
     this.world.DrawDebugData();
 
-    if (this.currentLine) {
+    if (this.touchDownPosition && this.touchDownPosition.button === 0) {
       ctx.beginPath();
       ctx.strokeStyle = 'green';
-      ctx.moveTo(this.currentLine.x, this.currentLine.y);
+      ctx.moveTo(this.touchDownPosition.x, this.touchDownPosition.y);
       ctx.lineTo(this.touchPosition.x, this.touchPosition.y);
       ctx.stroke();
     }
@@ -131,27 +133,29 @@ export default class Game {
   }
 
   onTouchStart(e) {
-    // console.log('down', e);
-    this.currentLine = {x: e.clientX, y: e.clientY};
-    this.getCanvasRelativeCoords(this.currentLine, this.camera);
+    e.preventDefault();
+    this.touchDownPosition = {x: e.clientX, y: e.clientY, button: e.button, cx: this.camera.x, cy: this.camera.y};
+    this.getCanvasRelativeCoords(this.touchDownPosition, this.camera);
   }
 
   onTouchEnd(e) {
-    // console.log('up', e);
+    e.preventDefault();
     this.touchPosition.x = e.clientX;
     this.touchPosition.y = e.clientY;
     this.getCanvasRelativeCoords(this.touchPosition, this.camera);
 
-    const line = {
-      x1: this.currentLine.x, y1: this.currentLine.y,
-      x2: this.touchPosition.x, y2: this.touchPosition.y
-    };
-    this.lines.push(line);
+    if (e.button === 0) {
+      const line = {
+        x1: this.touchDownPosition.x, y1: this.touchDownPosition.y,
+        x2: this.touchPosition.x, y2: this.touchPosition.y
+      };
+      this.lines.push(line);
 
-    const lineShape = new Box2D.b2EdgeShape();
-    lineShape.Set(new Box2D.b2Vec2(line.x1, line.y1), new Box2D.b2Vec2(line.x2, line.y2));
-    this.linesBody.CreateFixture(lineShape, 0.0);
+      const lineShape = new Box2D.b2EdgeShape();
+      lineShape.Set(new Box2D.b2Vec2(line.x1, line.y1), new Box2D.b2Vec2(line.x2, line.y2));
+      this.linesBody.CreateFixture(lineShape, 0.0);
+    }
 
-    this.currentLine = null;
+    this.touchDownPosition = null;
   }
 }

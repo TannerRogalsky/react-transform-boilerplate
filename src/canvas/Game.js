@@ -130,6 +130,11 @@ export default class Game {
     this.touchPosition.x = e.clientX;
     this.touchPosition.y = e.clientY;
     this.getCanvasRelativeCoords(this.touchPosition, this.camera);
+
+    if (e.button === 2) {
+      this.camera.x -= e.movementX / SCALE;
+      this.camera.y += e.movementY / SCALE;
+    }
   }
 
   onTouchStart(e) {

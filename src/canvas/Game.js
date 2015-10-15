@@ -7,8 +7,8 @@ const SCALE = 32;
 const STARTING_POSITION = {x: 5, y: 10};
 
 const getCanvasRelativeCoords = function(coords, camera) {
-  coords.x -= this.offsetLeft + camera.x;
-  coords.y -= this.offsetTop + camera.y;
+  coords.x -= this.offsetLeft + camera.x * -1 * SCALE;
+  coords.y -= this.offsetTop + camera.y * SCALE;
   coords.y *= -1;
   coords.x /= SCALE;
   coords.y /= SCALE;
@@ -22,7 +22,7 @@ const createBall = function(world, x, y, r) {
   const ballBody = world.CreateBody(ballBodyDef);
   ballBody.CreateFixture(ballShape, 1.0);
   ballBody.SetTransform(new Box2D.b2Vec2(x, y), 0.0);
-  return ballBody
+  return ballBody;
 };
 
 export default class Game {
@@ -41,9 +41,9 @@ export default class Game {
 
     this.getCanvasRelativeCoords = getCanvasRelativeCoords.bind(canvas);
 
-    this.width = canvas.width;
-    this.height = canvas.height;
-    this.camera = {x: 0, y: canvas.height};
+    this.width = canvas.width / SCALE;
+    this.height = canvas.height / SCALE;
+    this.camera = {x: -2, y: 20};
 
     this.playing = false;
     this.lines = [];
@@ -89,16 +89,16 @@ export default class Game {
     this.ballBody.SetAngularVelocity(0);
     this.ballBody.SetTransform(new Box2D.b2Vec2(x, y), 0.0);
 
-    this.camera.x = x * SCALE - this.width / 2;
-    this.camera.y = y * SCALE + this.height / 2;
+    this.camera.x = x - this.width / 2;
+    this.camera.y = y + this.height / 2;
   }
 
   update(dt) {
     if (this.playing) {
       this.world.Step(dt, 3, 2);
       const ballPos = this.ballBody.GetPosition();
-      this.camera.x = ballPos.get_x() * SCALE - this.width / 2;
-      this.camera.y = ballPos.get_y() * SCALE + this.height / 2;
+      this.camera.x = ballPos.get_x() - this.width / 2;
+      this.camera.y = ballPos.get_y() + this.height / 2;
     }
     this.render();
   }
@@ -106,11 +106,11 @@ export default class Game {
   render() {
     const ctx = this.context;
     ctx.fillStyle = 'black';
-    ctx.fillRect(0, 0, this.width, this.height);
+    ctx.fillRect(0, 0, this.width * SCALE, this.height * SCALE);
     ctx.save();
     ctx.scale(1, -1);
-    ctx.translate(-this.camera.x, -this.camera.y);
     ctx.scale(SCALE, SCALE);
+    ctx.translate(-this.camera.x, -this.camera.y);
     ctx.lineWidth /= SCALE;
 
     this.world.DrawDebugData();
